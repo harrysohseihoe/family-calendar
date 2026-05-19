@@ -654,7 +654,7 @@ function iterDates(startStr, endStr, cb) {
   const s = new Date(startStr + "T00:00:00");
   const e = new Date((endStr || startStr) + "T00:00:00");
   for (let d = new Date(s); d <= e; d.setDate(d.getDate() + 1)) {
-    const ds = d.toISOString().slice(0,10);
+    const ds = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
     cb(ds);
   }
 }
