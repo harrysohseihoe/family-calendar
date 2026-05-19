@@ -499,10 +499,6 @@ import { initializeApp }             from "https://www.gstatic.com/firebasejs/10
 import { getDatabase, ref, onValue,
          push, set, remove }         from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
-/* ════════════════════════════════════════════════════════
-   REPLACE the values below with your own Firebase config
-   after you create a project at https://console.firebase.google.com
-   ════════════════════════════════════════════════════════ */
 const firebaseConfig = {
   apiKey:            "AIzaSyBC8mhpNYXqYN5UyXtnmnIvFWVN0rnnyoA",
   authDomain:        "family-calendar-74a4a.firebaseapp.com",
@@ -528,7 +524,7 @@ const TYPE_EMOJI = {
 
 /* ── State ── */
 let db, dbRef;
-let events    = {};        // { id: {title,who,start,end,type,notes} }
+let events    = {};
 let curYear   = new Date().getFullYear();
 let curMonth  = new Date().getMonth();
 let activeFilters = new Set(["harry","shelley","natalie","christy"]);
@@ -568,6 +564,11 @@ function initFirebase() {
     renderCalendar();
   });
   renderCalendar();
+}
+
+/* ── Local date string helper ── */
+function toLocalDateStr(d) {
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
 }
 
 /* ── Calendar render ── */
@@ -654,8 +655,7 @@ function iterDates(startStr, endStr, cb) {
   const s = new Date(startStr + "T00:00:00");
   const e = new Date((endStr || startStr) + "T00:00:00");
   for (let d = new Date(s); d <= e; d.setDate(d.getDate() + 1)) {
-    const ds = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
-    cb(ds);
+    cb(toLocalDateStr(d));
   }
 }
 
@@ -685,8 +685,8 @@ window.openNewEvent = function(dateStr) {
   selectedType = "";
   document.getElementById("modal-title").textContent = "Add Event";
   document.getElementById("ev-title").value = "";
-  document.getElementById("ev-start").value = dateStr || todayStr();
-  document.getElementById("ev-end").value   = dateStr || todayStr();
+  document.getElementById("ev-start").value = dateStr || toLocalDateStr(new Date());
+  document.getElementById("ev-end").value   = dateStr || toLocalDateStr(new Date());
   document.getElementById("ev-notes").value = "";
   document.getElementById("btn-delete").style.display = "none";
   refreshWhoButtons();
@@ -741,7 +741,6 @@ window.saveEvent = async function() {
   const whoArr = Array.from(selectedWho);
 
   if (!db) {
-    /* offline demo mode */
     whoArr.forEach(who => {
       const id = editingId && whoArr.length === 1 ? editingId : ("local-" + Date.now() + "-" + who);
       events[id] = { title, who, start, end, type: selectedType, notes };
@@ -833,10 +832,6 @@ window.deleteFromDetail = async function() {
 };
 
 /* ── Helpers ── */
-function todayStr() {
-  return new Date().toISOString().slice(0,10);
-}
-
 function showToast(msg) {
   const t = document.getElementById("toast");
   t.textContent = msg;
@@ -856,7 +851,6 @@ document.addEventListener("click", e => {
   }
 });
 
-/* initial render (offline/demo state before login) */
 renderCalendar();
 </script>
 </body>
