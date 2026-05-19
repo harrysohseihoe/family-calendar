@@ -1,0 +1,863 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Soh-Han Family Calendar</title>
+<style>
+  :root {
+    --harry:   #3B82F6;
+    --shelley: #EC4899;
+    --natalie: #10B981;
+    --christy: #F59E0B;
+    --bg:      #F8FAFC;
+    --card:    #FFFFFF;
+    --border:  #E2E8F0;
+    --text:    #1E293B;
+    --muted:   #94A3B8;
+    --radius:  12px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+  }
+
+  /* ── LOGIN ────────────────────────────────────────────────── */
+  #login-screen {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 20px;
+  }
+  .login-card {
+    background: var(--card);
+    border-radius: var(--radius);
+    padding: 40px 36px;
+    width: 100%;
+    max-width: 380px;
+    box-shadow: 0 4px 24px rgba(0,0,0,.08);
+    text-align: center;
+  }
+  .login-card h1 { font-size: 1.6rem; margin-bottom: 4px; }
+  .login-card p  { color: var(--muted); margin-bottom: 28px; font-size: .9rem; }
+  .login-card input {
+    width: 100%; padding: 12px 16px;
+    border: 1.5px solid var(--border);
+    border-radius: 8px; font-size: 1rem;
+    outline: none; margin-bottom: 12px;
+    transition: border-color .2s;
+  }
+  .login-card input:focus { border-color: var(--harry); }
+  .login-card button {
+    width: 100%; padding: 12px;
+    background: var(--harry); color: #fff;
+    border: none; border-radius: 8px;
+    font-size: 1rem; font-weight: 600;
+    cursor: pointer; transition: opacity .2s;
+  }
+  .login-card button:hover { opacity: .88; }
+  #login-error { color: #EF4444; font-size: .85rem; margin-top: 10px; }
+  .family-dots { display: flex; justify-content: center; gap: 8px; margin-bottom: 24px; }
+  .family-dots span {
+    width: 12px; height: 12px; border-radius: 50%;
+  }
+
+  /* ── APP SHELL ────────────────────────────────────────────── */
+  #app { display: none; flex-direction: column; min-height: 100vh; }
+
+  header {
+    background: var(--card);
+    border-bottom: 1px solid var(--border);
+    padding: 0 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 60px;
+    position: sticky; top: 0; z-index: 10;
+  }
+  header h1 { font-size: 1.1rem; font-weight: 700; }
+  .header-actions { display: flex; gap: 10px; align-items: center; }
+  .btn-icon {
+    background: none; border: 1.5px solid var(--border);
+    border-radius: 8px; padding: 6px 12px;
+    cursor: pointer; font-size: .85rem;
+    color: var(--text); transition: background .15s;
+  }
+  .btn-icon:hover { background: var(--bg); }
+  .btn-primary {
+    background: var(--harry); color: #fff;
+    border: none; border-radius: 8px;
+    padding: 8px 16px; font-size: .9rem;
+    font-weight: 600; cursor: pointer;
+    transition: opacity .2s;
+  }
+  .btn-primary:hover { opacity: .88; }
+
+  /* ── LEGEND ───────────────────────────────────────────────── */
+  .legend {
+    display: flex; flex-wrap: wrap; gap: 8px;
+    padding: 12px 20px;
+    background: var(--card);
+    border-bottom: 1px solid var(--border);
+  }
+  .legend-item {
+    display: flex; align-items: center; gap: 6px;
+    font-size: .82rem; cursor: pointer;
+    padding: 4px 10px; border-radius: 20px;
+    border: 1.5px solid transparent;
+    transition: all .15s;
+    user-select: none;
+  }
+  .legend-item.active { border-color: currentColor; }
+  .legend-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+
+  /* ── CALENDAR NAV ─────────────────────────────────────────── */
+  .cal-nav {
+    display: flex; align-items: center; justify-content: center;
+    gap: 16px; padding: 16px 20px 8px;
+  }
+  .cal-nav button {
+    background: none; border: 1.5px solid var(--border);
+    border-radius: 8px; width: 36px; height: 36px;
+    cursor: pointer; font-size: 1.1rem;
+    display: flex; align-items: center; justify-content: center;
+    transition: background .15s;
+  }
+  .cal-nav button:hover { background: var(--border); }
+  .cal-nav h2 { font-size: 1.15rem; min-width: 180px; text-align: center; }
+  .today-btn {
+    font-size: .8rem; padding: 4px 12px;
+    border-radius: 6px; cursor: pointer;
+    background: none; border: 1.5px solid var(--border);
+    color: var(--text); transition: background .15s;
+  }
+  .today-btn:hover { background: var(--border); }
+
+  /* ── CALENDAR GRID ────────────────────────────────────────── */
+  .cal-container { padding: 0 12px 80px; max-width: 1000px; margin: 0 auto; width: 100%; }
+  .day-headers {
+    display: grid; grid-template-columns: repeat(7, 1fr);
+    gap: 2px; margin-bottom: 4px;
+  }
+  .day-header {
+    text-align: center; font-size: .75rem;
+    font-weight: 600; color: var(--muted);
+    padding: 4px 0; letter-spacing: .04em;
+    text-transform: uppercase;
+  }
+  .cal-grid {
+    display: grid; grid-template-columns: repeat(7, 1fr);
+    gap: 4px;
+  }
+  .cal-cell {
+    background: var(--card);
+    border-radius: 8px;
+    border: 1.5px solid var(--border);
+    min-height: 90px;
+    padding: 6px;
+    cursor: pointer;
+    transition: border-color .15s, box-shadow .15s;
+    position: relative;
+  }
+  .cal-cell:hover { border-color: var(--harry); box-shadow: 0 2px 8px rgba(59,130,246,.1); }
+  .cal-cell.other-month { opacity: .4; }
+  .cal-cell.today { border-color: var(--harry); background: #EFF6FF; }
+  .cal-cell.today .cell-day { color: var(--harry); font-weight: 700; }
+  .cell-day {
+    font-size: .8rem; font-weight: 600;
+    color: var(--muted); margin-bottom: 4px;
+  }
+  .cell-events { display: flex; flex-direction: column; gap: 2px; }
+  .event-pill {
+    font-size: .72rem; padding: 2px 6px;
+    border-radius: 4px; color: #fff;
+    white-space: nowrap; overflow: hidden;
+    text-overflow: ellipsis;
+    cursor: pointer;
+    font-weight: 500;
+  }
+  .more-events {
+    font-size: .68rem; color: var(--muted);
+    padding: 1px 4px; font-weight: 600;
+  }
+
+  /* ── MODAL ────────────────────────────────────────────────── */
+  .modal-overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,.45); z-index: 100;
+    align-items: center; justify-content: center;
+    padding: 20px;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: var(--card); border-radius: var(--radius);
+    padding: 28px; width: 100%; max-width: 440px;
+    box-shadow: 0 8px 40px rgba(0,0,0,.15);
+    max-height: 90vh; overflow-y: auto;
+  }
+  .modal h3 { font-size: 1.1rem; margin-bottom: 20px; }
+  .form-group { margin-bottom: 16px; }
+  .form-group label {
+    display: block; font-size: .85rem;
+    font-weight: 600; margin-bottom: 6px;
+  }
+  .form-group input,
+  .form-group select,
+  .form-group textarea {
+    width: 100%; padding: 10px 12px;
+    border: 1.5px solid var(--border);
+    border-radius: 8px; font-size: .9rem;
+    outline: none; font-family: inherit;
+    transition: border-color .2s;
+  }
+  .form-group input:focus,
+  .form-group select:focus,
+  .form-group textarea:focus { border-color: var(--harry); }
+  .form-group textarea { resize: vertical; min-height: 70px; }
+  .form-row { display: flex; gap: 12px; }
+  .form-row .form-group { flex: 1; }
+
+  .who-grid {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .who-btn {
+    padding: 8px 12px; border-radius: 8px;
+    border: 2px solid var(--border);
+    background: none; cursor: pointer;
+    font-size: .85rem; font-weight: 600;
+    transition: all .15s; text-align: left;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .who-btn.selected { color: #fff; border-color: transparent; }
+  .who-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+
+  .type-grid {
+    display: grid; grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+  }
+  .type-btn {
+    padding: 7px 4px; border-radius: 8px;
+    border: 2px solid var(--border);
+    background: none; cursor: pointer;
+    font-size: .78rem; text-align: center;
+    transition: all .15s; line-height: 1.3;
+  }
+  .type-btn.selected {
+    background: var(--harry); color: #fff;
+    border-color: var(--harry);
+  }
+
+  .modal-actions {
+    display: flex; gap: 10px; margin-top: 24px;
+    justify-content: flex-end;
+  }
+  .btn-cancel {
+    padding: 10px 20px; border: 1.5px solid var(--border);
+    border-radius: 8px; background: none;
+    cursor: pointer; font-size: .9rem;
+    transition: background .15s;
+  }
+  .btn-cancel:hover { background: var(--bg); }
+  .btn-save {
+    padding: 10px 24px; background: var(--harry);
+    color: #fff; border: none; border-radius: 8px;
+    font-size: .9rem; font-weight: 600;
+    cursor: pointer; transition: opacity .2s;
+  }
+  .btn-save:hover { opacity: .88; }
+  .btn-delete {
+    padding: 10px 16px; background: #FEE2E2;
+    color: #DC2626; border: none; border-radius: 8px;
+    font-size: .9rem; font-weight: 600;
+    cursor: pointer; margin-right: auto;
+    transition: background .2s;
+  }
+  .btn-delete:hover { background: #FECACA; }
+
+  /* ── EVENT DETAIL POPUP ───────────────────────────────────── */
+  .detail-popup {
+    display: none; position: fixed; z-index: 200;
+    background: var(--card); border-radius: var(--radius);
+    padding: 16px; min-width: 220px; max-width: 280px;
+    box-shadow: 0 8px 32px rgba(0,0,0,.15);
+    border: 1.5px solid var(--border);
+  }
+  .detail-popup.open { display: block; }
+  .detail-header {
+    display: flex; align-items: flex-start;
+    justify-content: space-between; gap: 8px;
+    margin-bottom: 10px;
+  }
+  .detail-title { font-weight: 700; font-size: .95rem; line-height: 1.3; }
+  .detail-close {
+    background: none; border: none; cursor: pointer;
+    color: var(--muted); font-size: 1.1rem; line-height: 1;
+    flex-shrink: 0;
+  }
+  .detail-meta { font-size: .8rem; color: var(--muted); margin-bottom: 6px; }
+  .detail-tag {
+    display: inline-block; font-size: .75rem;
+    padding: 2px 8px; border-radius: 20px;
+    color: #fff; font-weight: 600; margin-bottom: 8px;
+  }
+  .detail-note { font-size: .82rem; color: #475569; margin-bottom: 12px; }
+  .detail-actions { display: flex; gap: 8px; }
+  .detail-edit {
+    flex: 1; padding: 7px; background: var(--bg);
+    border: 1.5px solid var(--border); border-radius: 7px;
+    cursor: pointer; font-size: .82rem; font-weight: 600;
+    text-align: center;
+  }
+  .detail-del {
+    flex: 1; padding: 7px; background: #FEE2E2;
+    color: #DC2626; border: none; border-radius: 7px;
+    cursor: pointer; font-size: .82rem; font-weight: 600;
+    text-align: center;
+  }
+
+  /* ── LOADING / TOAST ──────────────────────────────────────── */
+  #toast {
+    position: fixed; bottom: 24px; left: 50%;
+    transform: translateX(-50%) translateY(80px);
+    background: #1E293B; color: #fff;
+    padding: 10px 20px; border-radius: 8px;
+    font-size: .9rem; z-index: 999;
+    transition: transform .3s ease;
+    pointer-events: none;
+  }
+  #toast.show { transform: translateX(-50%) translateY(0); }
+
+  /* ── MOBILE ───────────────────────────────────────────────── */
+  @media (max-width: 600px) {
+    .cal-cell { min-height: 64px; padding: 4px; }
+    .cell-day  { font-size: .72rem; }
+    .event-pill { font-size: .66rem; padding: 1px 4px; }
+    .cal-nav h2 { font-size: 1rem; min-width: 140px; }
+    header h1 { font-size: .95rem; }
+    .legend { padding: 8px 12px; }
+    .legend-item { font-size: .75rem; }
+    .who-grid { grid-template-columns: 1fr 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ── LOGIN ─────────────────────────────────────────────────── -->
+<div id="login-screen">
+  <div class="login-card">
+    <div class="family-dots">
+      <span style="background:#3B82F6"></span>
+      <span style="background:#EC4899"></span>
+      <span style="background:#10B981"></span>
+      <span style="background:#F59E0B"></span>
+    </div>
+    <h1>Family Calendar</h1>
+    <p>Soh · Han · Su</p>
+    <input type="password" id="pw-input" placeholder="Enter password" autocomplete="current-password">
+    <button onclick="tryLogin()">Enter</button>
+    <div id="login-error"></div>
+  </div>
+</div>
+
+<!-- ── APP ───────────────────────────────────────────────────── -->
+<div id="app">
+  <header>
+    <h1>📅 Family Calendar</h1>
+    <div class="header-actions">
+      <button class="btn-icon" onclick="logout()">🔒 Lock</button>
+      <button class="btn-primary" onclick="openNewEvent()">+ Add Event</button>
+    </div>
+  </header>
+
+  <div class="legend">
+    <div class="legend-item active" data-who="harry"   onclick="toggleFilter('harry')"   style="color:var(--harry)">
+      <span class="legend-dot" style="background:var(--harry)"></span> Harry
+    </div>
+    <div class="legend-item active" data-who="shelley" onclick="toggleFilter('shelley')" style="color:var(--shelley)">
+      <span class="legend-dot" style="background:var(--shelley)"></span> Shelley
+    </div>
+    <div class="legend-item active" data-who="natalie" onclick="toggleFilter('natalie')" style="color:var(--natalie)">
+      <span class="legend-dot" style="background:var(--natalie)"></span> Natalie
+    </div>
+    <div class="legend-item active" data-who="christy" onclick="toggleFilter('christy')" style="color:var(--christy)">
+      <span class="legend-dot" style="background:var(--christy)"></span> Christy
+    </div>
+  </div>
+
+  <div class="cal-nav">
+    <button onclick="prevMonth()">&#8249;</button>
+    <h2 id="month-label"></h2>
+    <button onclick="nextMonth()">&#8250;</button>
+    <button class="today-btn" onclick="goToday()">Today</button>
+  </div>
+
+  <div class="cal-container">
+    <div class="day-headers">
+      <div class="day-header">Sun</div>
+      <div class="day-header">Mon</div>
+      <div class="day-header">Tue</div>
+      <div class="day-header">Wed</div>
+      <div class="day-header">Thu</div>
+      <div class="day-header">Fri</div>
+      <div class="day-header">Sat</div>
+    </div>
+    <div class="cal-grid" id="cal-grid"></div>
+  </div>
+</div>
+
+<!-- ── ADD / EDIT MODAL ───────────────────────────────────────── -->
+<div class="modal-overlay" id="event-modal">
+  <div class="modal">
+    <h3 id="modal-title">Add Event</h3>
+
+    <div class="form-group">
+      <label>Title</label>
+      <input type="text" id="ev-title" placeholder="e.g. Tokyo trip, School sports day…">
+    </div>
+
+    <div class="form-group">
+      <label>Who</label>
+      <div class="who-grid">
+        <button class="who-btn" data-who="harry"   onclick="toggleWho('harry')"  >
+          <span class="who-dot" style="background:var(--harry)"></span>Harry
+        </button>
+        <button class="who-btn" data-who="shelley" onclick="toggleWho('shelley')">
+          <span class="who-dot" style="background:var(--shelley)"></span>Shelley
+        </button>
+        <button class="who-btn" data-who="natalie" onclick="toggleWho('natalie')">
+          <span class="who-dot" style="background:var(--natalie)"></span>Natalie
+        </button>
+        <button class="who-btn" data-who="christy" onclick="toggleWho('christy')">
+          <span class="who-dot" style="background:var(--christy)"></span>Christy
+        </button>
+      </div>
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label>Start date</label>
+        <input type="date" id="ev-start">
+      </div>
+      <div class="form-group">
+        <label>End date</label>
+        <input type="date" id="ev-end">
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>Type</label>
+      <div class="type-grid">
+        <button class="type-btn" data-type="travel"   onclick="selectType('travel')"  >✈️ Travel</button>
+        <button class="type-btn" data-type="home"     onclick="selectType('home')"    >🏠 Home</button>
+        <button class="type-btn" data-type="work"     onclick="selectType('work')"    >💼 Work</button>
+        <button class="type-btn" data-type="school"   onclick="selectType('school')"  >🎓 School</button>
+        <button class="type-btn" data-type="health"   onclick="selectType('health')"  >🏥 Health</button>
+        <button class="type-btn" data-type="social"   onclick="selectType('social')"  >🎉 Social</button>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>Notes <span style="font-weight:400;color:var(--muted)">(optional)</span></label>
+      <textarea id="ev-notes" placeholder="Flight details, address, reminders…"></textarea>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn-delete" id="btn-delete" onclick="deleteEvent()" style="display:none">Delete</button>
+      <button class="btn-cancel" onclick="closeModal()">Cancel</button>
+      <button class="btn-save"   onclick="saveEvent()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── EVENT DETAIL POPUP ─────────────────────────────────────── -->
+<div class="detail-popup" id="detail-popup">
+  <div class="detail-header">
+    <div class="detail-title" id="dp-title"></div>
+    <button class="detail-close" onclick="closeDetail()">✕</button>
+  </div>
+  <div class="detail-meta"  id="dp-meta"></div>
+  <span class="detail-tag"  id="dp-tag"></span>
+  <div class="detail-note"  id="dp-note"></div>
+  <div class="detail-actions">
+    <button class="detail-edit" onclick="editFromDetail()">Edit</button>
+    <button class="detail-del"  onclick="deleteFromDetail()">Delete</button>
+  </div>
+</div>
+
+<div id="toast">Saved!</div>
+
+<!-- ── FIREBASE SDK ───────────────────────────────────────────── -->
+<script type="module">
+import { initializeApp }             from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getDatabase, ref, onValue,
+         push, set, remove }         from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+/* ════════════════════════════════════════════════════════
+   REPLACE the values below with your own Firebase config
+   after you create a project at https://console.firebase.google.com
+   ════════════════════════════════════════════════════════ */
+const firebaseConfig = {
+  apiKey:            "AIzaSyBC8mhpNYXqYN5UyXtnmnIvFWVN0rnnyoA",
+  authDomain:        "family-calendar-74a4a.firebaseapp.com",
+  databaseURL:       "https://family-calendar-74a4a-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId:         "family-calendar-74a4a",
+  storageBucket:     "family-calendar-74a4a.firebasestorage.app",
+  messagingSenderId: "911039040228",
+  appId:             "1:911039040228:web:0e0c26f045520d4774baf1"
+};
+
+const PASSWORD = "sohhan2026";
+
+const COLORS = {
+  harry:   "#3B82F6",
+  shelley: "#EC4899",
+  natalie: "#10B981",
+  christy: "#F59E0B",
+};
+const TYPE_EMOJI = {
+  travel: "✈️", home: "🏠", work: "💼",
+  school: "🎓", health: "🏥", social: "🎉"
+};
+
+/* ── State ── */
+let db, dbRef;
+let events    = {};        // { id: {title,who,start,end,type,notes} }
+let curYear   = new Date().getFullYear();
+let curMonth  = new Date().getMonth();
+let activeFilters = new Set(["harry","shelley","natalie","christy"]);
+let editingId = null;
+let selectedWho  = new Set();
+let selectedType = "";
+let detailEventId = null;
+
+/* ── Login ── */
+window.tryLogin = function() {
+  const val = document.getElementById("pw-input").value;
+  if (val === PASSWORD) {
+    document.getElementById("login-screen").style.display = "none";
+    document.getElementById("app").style.display = "flex";
+    initFirebase();
+  } else {
+    document.getElementById("login-error").textContent = "Wrong password. Try again.";
+  }
+};
+document.getElementById("pw-input").addEventListener("keydown", e => {
+  if (e.key === "Enter") window.tryLogin();
+});
+
+window.logout = function() {
+  document.getElementById("app").style.display = "none";
+  document.getElementById("login-screen").style.display = "flex";
+  document.getElementById("pw-input").value = "";
+};
+
+/* ── Firebase init ── */
+function initFirebase() {
+  const app = initializeApp(firebaseConfig);
+  db    = getDatabase(app);
+  dbRef = ref(db, "events");
+  onValue(dbRef, snap => {
+    events = snap.val() || {};
+    renderCalendar();
+  });
+  renderCalendar();
+}
+
+/* ── Calendar render ── */
+function renderCalendar() {
+  const label = document.getElementById("month-label");
+  label.textContent = new Date(curYear, curMonth, 1)
+    .toLocaleDateString("en-US", { month: "long", year: "numeric" });
+
+  const grid   = document.getElementById("cal-grid");
+  grid.innerHTML = "";
+
+  const today  = new Date();
+  const first  = new Date(curYear, curMonth, 1).getDay();
+  const days   = new Date(curYear, curMonth + 1, 0).getDate();
+  const prevDays = new Date(curYear, curMonth, 0).getDate();
+
+  const total  = Math.ceil((first + days) / 7) * 7;
+
+  for (let i = 0; i < total; i++) {
+    let d, m, y, other = false;
+    if (i < first) {
+      d = prevDays - first + i + 1;
+      m = curMonth - 1; y = curYear;
+      if (m < 0) { m = 11; y--; }
+      other = true;
+    } else if (i >= first + days) {
+      d = i - first - days + 1;
+      m = curMonth + 1; y = curYear;
+      if (m > 11) { m = 0; y++; }
+      other = true;
+    } else {
+      d = i - first + 1;
+      m = curMonth; y = curYear;
+    }
+
+    const dateStr = `${y}-${String(m+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
+    const isToday = d === today.getDate() && m === today.getMonth() && y === today.getFullYear() && !other;
+
+    const cell = document.createElement("div");
+    cell.className = "cal-cell" + (other?" other-month":"") + (isToday?" today":"");
+    cell.innerHTML = `<div class="cell-day">${d}</div><div class="cell-events" id="ce-${dateStr}"></div>`;
+    cell.addEventListener("click", e => {
+      if (e.target === cell || e.target.classList.contains("cell-day") || e.target.classList.contains("cell-events")) {
+        openNewEvent(dateStr);
+      }
+    });
+    grid.appendChild(cell);
+  }
+
+  /* place events */
+  Object.entries(events).forEach(([id, ev]) => {
+    if (!ev || !activeFilters.has(ev.who)) return;
+    const start = ev.start, end = ev.end || ev.start;
+
+    iterDates(start, end, dateStr => {
+      const container = document.getElementById(`ce-${dateStr}`);
+      if (!container) return;
+      const existing = container.querySelectorAll(".event-pill").length;
+      if (existing >= 3) {
+        let more = container.querySelector(".more-events");
+        if (!more) {
+          more = document.createElement("div");
+          more.className = "more-events";
+          container.appendChild(more);
+        }
+        more.textContent = `+${existing - 2} more`;
+        return;
+      }
+      const pill = document.createElement("div");
+      pill.className = "event-pill";
+      pill.style.background = COLORS[ev.who] || "#94A3B8";
+      pill.textContent = (TYPE_EMOJI[ev.type] || "") + " " + ev.title;
+      pill.title = ev.title;
+      pill.addEventListener("click", e => {
+        e.stopPropagation();
+        showDetail(id, e);
+      });
+      container.insertBefore(pill, container.querySelector(".more-events"));
+    });
+  });
+}
+
+function iterDates(startStr, endStr, cb) {
+  const s = new Date(startStr + "T00:00:00");
+  const e = new Date((endStr || startStr) + "T00:00:00");
+  for (let d = new Date(s); d <= e; d.setDate(d.getDate() + 1)) {
+    const ds = d.toISOString().slice(0,10);
+    cb(ds);
+  }
+}
+
+/* ── Navigation ── */
+window.prevMonth = function() { curMonth--; if(curMonth<0){curMonth=11;curYear--;} renderCalendar(); };
+window.nextMonth = function() { curMonth++; if(curMonth>11){curMonth=0;curYear++;} renderCalendar(); };
+window.goToday   = function() { curYear=new Date().getFullYear(); curMonth=new Date().getMonth(); renderCalendar(); };
+
+/* ── Filter ── */
+window.toggleFilter = function(who) {
+  const el = document.querySelector(`.legend-item[data-who="${who}"]`);
+  if (activeFilters.has(who)) {
+    if (activeFilters.size === 1) return;
+    activeFilters.delete(who);
+    el.classList.remove("active");
+  } else {
+    activeFilters.add(who);
+    el.classList.add("active");
+  }
+  renderCalendar();
+};
+
+/* ── Modal ── */
+window.openNewEvent = function(dateStr) {
+  editingId = null;
+  selectedWho.clear();
+  selectedType = "";
+  document.getElementById("modal-title").textContent = "Add Event";
+  document.getElementById("ev-title").value = "";
+  document.getElementById("ev-start").value = dateStr || todayStr();
+  document.getElementById("ev-end").value   = dateStr || todayStr();
+  document.getElementById("ev-notes").value = "";
+  document.getElementById("btn-delete").style.display = "none";
+  refreshWhoButtons();
+  refreshTypeButtons();
+  document.getElementById("event-modal").classList.add("open");
+};
+
+window.closeModal = function() {
+  document.getElementById("event-modal").classList.remove("open");
+};
+
+window.toggleWho = function(who) {
+  if (selectedWho.has(who)) selectedWho.delete(who);
+  else selectedWho.add(who);
+  refreshWhoButtons();
+};
+
+function refreshWhoButtons() {
+  document.querySelectorAll(".who-btn").forEach(btn => {
+    const w = btn.dataset.who;
+    if (selectedWho.has(w)) {
+      btn.classList.add("selected");
+      btn.style.background = COLORS[w];
+    } else {
+      btn.classList.remove("selected");
+      btn.style.background = "";
+    }
+  });
+}
+
+window.selectType = function(type) {
+  selectedType = type;
+  refreshTypeButtons();
+};
+
+function refreshTypeButtons() {
+  document.querySelectorAll(".type-btn").forEach(btn => {
+    btn.classList.toggle("selected", btn.dataset.type === selectedType);
+  });
+}
+
+window.saveEvent = async function() {
+  const title = document.getElementById("ev-title").value.trim();
+  const start = document.getElementById("ev-start").value;
+  const end   = document.getElementById("ev-end").value   || start;
+  const notes = document.getElementById("ev-notes").value.trim();
+
+  if (!title) { alert("Please enter a title."); return; }
+  if (selectedWho.size === 0) { alert("Please select who this event is for."); return; }
+  if (!start) { alert("Please set a start date."); return; }
+
+  const whoArr = Array.from(selectedWho);
+
+  if (!db) {
+    /* offline demo mode */
+    whoArr.forEach(who => {
+      const id = editingId && whoArr.length === 1 ? editingId : ("local-" + Date.now() + "-" + who);
+      events[id] = { title, who, start, end, type: selectedType, notes };
+    });
+    renderCalendar(); closeModal(); showToast("Saved!");
+    return;
+  }
+
+  if (editingId) {
+    await set(ref(db, `events/${editingId}`), { title, who: whoArr[0], start, end, type: selectedType, notes });
+  } else {
+    for (const who of whoArr) {
+      await push(dbRef, { title, who, start, end, type: selectedType, notes });
+    }
+  }
+  closeModal();
+  showToast("Saved!");
+};
+
+window.deleteEvent = async function() {
+  if (!editingId) return;
+  if (!confirm("Delete this event?")) return;
+  if (db) await remove(ref(db, `events/${editingId}`));
+  else { delete events[editingId]; renderCalendar(); }
+  closeModal();
+  showToast("Deleted");
+};
+
+/* ── Detail popup ── */
+window.showDetail = function(id, e) {
+  detailEventId = id;
+  const ev = events[id];
+  if (!ev) return;
+  document.getElementById("dp-title").textContent = ev.title;
+  const dateLabel = ev.start === ev.end || !ev.end ? ev.start
+    : `${ev.start}  →  ${ev.end}`;
+  const whoName = ev.who ? (ev.who.charAt(0).toUpperCase() + ev.who.slice(1)) : "";
+  document.getElementById("dp-meta").textContent = `${whoName}  ·  ${dateLabel}`;
+  const tag = document.getElementById("dp-tag");
+  tag.textContent = (TYPE_EMOJI[ev.type] || "") + " " + (ev.type || "");
+  tag.style.background = COLORS[ev.who] || "#94A3B8";
+  if (!ev.type) tag.style.display = "none"; else tag.style.display = "";
+  const noteEl = document.getElementById("dp-note");
+  noteEl.textContent = ev.notes || "";
+  noteEl.style.display = ev.notes ? "" : "none";
+
+  const popup = document.getElementById("detail-popup");
+  popup.classList.add("open");
+  const rect = e.target.getBoundingClientRect();
+  let top  = rect.bottom + window.scrollY + 4;
+  let left = rect.left + window.scrollX;
+  if (left + 280 > window.innerWidth) left = window.innerWidth - 290;
+  if (top + 200  > window.innerHeight + window.scrollY) top = rect.top + window.scrollY - 210;
+  popup.style.top  = top  + "px";
+  popup.style.left = left + "px";
+};
+
+window.closeDetail = function() {
+  document.getElementById("detail-popup").classList.remove("open");
+  detailEventId = null;
+};
+
+window.editFromDetail = function() {
+  const id = detailEventId;
+  closeDetail();
+  const ev = events[id];
+  if (!ev) return;
+  editingId = id;
+  selectedWho = new Set([ev.who]);
+  selectedType = ev.type || "";
+  document.getElementById("modal-title").textContent = "Edit Event";
+  document.getElementById("ev-title").value = ev.title;
+  document.getElementById("ev-start").value = ev.start;
+  document.getElementById("ev-end").value   = ev.end || ev.start;
+  document.getElementById("ev-notes").value = ev.notes || "";
+  document.getElementById("btn-delete").style.display = "block";
+  refreshWhoButtons();
+  refreshTypeButtons();
+  document.getElementById("event-modal").classList.add("open");
+};
+
+window.deleteFromDetail = async function() {
+  const id = detailEventId;
+  closeDetail();
+  if (!id || !confirm("Delete this event?")) return;
+  if (db) await remove(ref(db, `events/${id}`));
+  else { delete events[id]; renderCalendar(); }
+  showToast("Deleted");
+};
+
+/* ── Helpers ── */
+function todayStr() {
+  return new Date().toISOString().slice(0,10);
+}
+
+function showToast(msg) {
+  const t = document.getElementById("toast");
+  t.textContent = msg;
+  t.classList.add("show");
+  setTimeout(() => t.classList.remove("show"), 2200);
+}
+
+/* close popup on outside click */
+document.addEventListener("click", e => {
+  const popup = document.getElementById("detail-popup");
+  if (popup.classList.contains("open") && !popup.contains(e.target) && !e.target.classList.contains("event-pill")) {
+    closeDetail();
+  }
+  const modal = document.getElementById("event-modal");
+  if (modal.classList.contains("open") && e.target === modal) {
+    closeModal();
+  }
+});
+
+/* initial render (offline/demo state before login) */
+renderCalendar();
+</script>
+</body>
+</html>
